@@ -1,0 +1,60 @@
+#!/bin/bash
+
+green="\033[01;32m"
+default="\033[00m"
+
+# Check for root
+if [ "$(id -u)" != "0" ]; then
+   echo "Must be superuser." 1>&2
+   exit 1
+fi
+
+# Check distro
+if [ ! -f /etc/gentoo-release ]; then
+   echo "Your distro isn't supported"
+   exit 1
+fi
+
+case $1 in
+"nvidia")
+echo -e "Changing video driver to ${green}$1${default}"
+if [[ $(eselect opengl show) != nvidia ]] ; then
+eselect opengl set nvidia &>/dev/null
+fi
+
+sed -i 's/blacklist nvidia/blacklist nouveau/g' /etc/modprobe.d/nvidia.conf
+
+if [ -f /etc/X11/xorg.conf ]; then
+  mv /etc/X11/xorg.conf /etc/X11/xorg.bak
+fi
+
+
+if [ -f /etc/X11/xorg.nvidia ]; then
+  cp /etc/X11/xorg.nvidia /etc/X11/xorg.conf
+fi
+echo "Done. You need to restart your system for the changes to take effect"
+;;
+
+"nouveau")
+echo -e "Changing video driver to ${green}$1${default}"
+if [[ $(eselect opengl show) != xorg-x11 ]] ; then
+eselect opengl set xorg-x11 &>/dev/null
+fi
+
+sed -i 's/blacklist nouveau/blacklist nvidia/g' /etc/modprobe.d/nvidia.conf
+
+if [ -f /etc/X11/xorg.conf ]; then
+  mv /etc/X11/xorg.conf /etc/X11/xorg.bak
+fi
+
+
+if [ -f /etc/X11/xorg.nouveau ]; then
+  cp /etc/X11/xorg.nouveau /etc/X11/xorg.conf
+fi
+echo "Done. You need to restart your system for the changes to take effect"
+;;
+
+*)
+echo "The selected driver is not supported"
+;;
+esac
